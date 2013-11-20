@@ -1,0 +1,6 @@
+name: straight_race
+description: A car race on a straight line
+dependencies:
+  browser: any
+  unittest: any
+  vector_math: any
