@@ -1,5 +1,6 @@
 import 'package:unittest/unittest.dart';
 import 'package:vector_math/vector_math.dart';
+import 'dart:math' as math;
 
 class Tire {
   final double bestGrip;
@@ -8,6 +9,7 @@ class Tire {
   final double worstGrip;
   final double worstDrift;
   final double longitudeFactor;
+  static const double minRoadSpeed = 4.0;
   Matrix2 applyFactor;
   Matrix2 removeFactor;
   
@@ -35,12 +37,9 @@ class Tire {
     Vector2 roadSpeedf = applyFactor.transformed(roadSpeed);
     Vector2 driftSpeedf = applyFactor.transformed(driftSpeed);
     
-    double doubleDrift;
-    if (roadSpeedf.length2 == 0.0){
-      doubleDrift = bestGrip;
-    } else {
-      doubleDrift = driftSpeedf.length / roadSpeedf.length;
-    }
+    double roadSpeedD = math.max(roadSpeedf.length, minRoadSpeed);
+    double doubleDrift = driftSpeedf.length / roadSpeedD;
+   
     double doubleResponse = _doubleResponse(doubleDrift);
     
     Vector2 driftDirection = driftSpeedf.normalized();

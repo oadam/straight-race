@@ -2,6 +2,7 @@ import 'dart:html';
 import 'dart:math';
 import 'car.dart';
 import 'keyboard.dart';
+import 'package:vector_math/vector_math.dart';
 
 
 class Game {
@@ -12,6 +13,8 @@ class Game {
   final int width;
   final int height;
   
+  num lastUpdateTime = null;
+  
   static const num speed = 3;
   static const num speedRot = 0.04;
   
@@ -20,29 +23,41 @@ class Game {
     context = canvas.getContext("2d"),
     width = canvas.width,
     height = canvas.height {
-    car.x = width / 2;
-    car.y = height / 2;
-    car.a = 0;
+    car.pos = new Vector2(.0, .0);
+    car.a = 0.0;
+    
     
     window.requestAnimationFrame(this.update);
   }
 
-  update(e) {
-    if (keyboard.isPressed(KeyCode.UP)) {
-      car.x += speed * cos(car.a);
-      car.y += speed * sin(car.a);
+  update(num time) {
+    if (lastUpdateTime != null) {
+      num ellapsed = time - lastUpdateTime;
+      lastUpdateTime = time;
+      
+      car.updatePos(ellapsed / 1000.0, 
+          turnLeft: keyboard.isPressed(KeyCode.LEFT),
+          turnRight: keyboard.isPressed(KeyCode.RIGHT),
+          accel: keyboard.isPressed(KeyCode.UP),
+          brake: keyboard.isPressed(KeyCode.DOWN)
+      );
     }
-    if (keyboard.isPressed(KeyCode.LEFT)) {
-      car.a -= speedRot;
-    }
-    if (keyboard.isPressed(KeyCode.RIGHT)) {
-      car.a += speedRot;
-    }
-    context.setFillColorRgb(255, 0, 0);
-    context.fillRect(0, 0, width, height);
-   
-    drawCar(context, car);
     
+    //clear
+    context
+      ..setFillColorRgb(255, 0, 0)
+      ..fillRect(0, 0, width, height);
+      
+    context
+      ..save()
+      ..translate(0.0, height)
+      ..scale(1.0, -1.0)
+      ..scale(5, 5);
+    drawCar(context, car);
+    context.restore();
+    
+    document.getElementById("log").text = "pos ${car.pos.x.toStringAsExponential(3)}/${car.pos.y.toStringAsExponential(3)} : v ${car.v.x.toStringAsExponential(3)}/${car.v.y.toStringAsExponential(3)}";
+    lastUpdateTime = time;
     window.requestAnimationFrame(update);
   }
 }
@@ -56,14 +71,22 @@ void main() {
 void drawCar(CanvasRenderingContext2D context, Car car) {
   context
     ..save()
-    ..translate(car.x, car.y)
-    ..scale(20, 20)
+    ..translate(car.pos.x, car.pos.y)
     ..rotate(car.a)
     ..lineWidth = 0.01
-    ..setStrokeColorRgb(0, 255, 0)
-    ..strokeRect(-0.5, -0.25, 1, 0.5)
-    ..setFillColorRgb(0, 255, 255)
-    ..fillRect(0.43, 0.18, 0.05, 0.05)
-    ..fillRect(0.43, -0.23, 0.05, 0.05)
+    ..setFillColorRgb(0, 255, 0)
+    ..fillRect(-Car.length / 2.0, -Car.width / 2.0, Car.length, Car.width)
+    ;
+  //tires
+  context.setFillColorRgb(255, 255, 0);
+  car.tiresAndPos.forEach((tireAndPos) {
+    context
+      ..save()
+      ..translate(tireAndPos.pos.x, tireAndPos.pos.y)
+      ..rotate(tireAndPos.angle)
+      ..fillRect(-Car.length / 30, -Car.width / 100, Car.length / 15, Car.width / 50)
+      ..restore();
+  });
+  context
     ..restore();  
 }

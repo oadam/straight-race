@@ -1,3 +1,5 @@
+library car;
+
 import 'tire.dart';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
@@ -6,12 +8,18 @@ import 'package:unittest/unittest.dart';
 class ImpulseAndMomentum {
   final Vector2 impulse;
   final double momentum;
-  ImpulseAndMomentum(this.impulse, this.momentum);
+  const ImpulseAndMomentum(this.impulse, this.momentum);
+}
+
+class TirePosAndAngle {
+  final Vector2 pos;
+  final num angle;
+  const TirePosAndAngle(this.pos, this.angle);
 }
 
 class Car {
-  static const double bestGrip = 1.0;
-  static const double worstGrip = 0.5;
+  static const double bestGrip = 4.0;
+  static const double worstGrip = 2.0;
   static const double bestDrift = 0.1;
   static const double worstDrift = 0.3;
   static const double longitudeFactor = 3.0;
@@ -20,9 +28,11 @@ class Car {
   static const double length = 4.5;
   static const double width = 2.0;
   static const double weight = 1000.0;
+  static const double g = 9.8;
   static const double aMomentum = (length * length + width * width) * weight / 12;
-  static const double speed = 20.0;
+  static const double speed = 40.0;
   static const double angle = 20 * PI / 180;
+  
   
   Vector2 pos = new Vector2.zero(), v = new Vector2.zero();
   double a = 0.0, va = 0.0;
@@ -30,11 +40,12 @@ class Car {
   static final Vector2 fr = new Vector2(0.45*length, 0.45*width);
   static final Vector2 rl = new Vector2(-0.45*length, -0.45*width);
   static final Vector2 rr = new Vector2(-0.45*length, 0.45*width);
+  double fangle = 0.0;
   
   void updatePos(num dt, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
     final double rspeed = accel ? speed : (brake ? 0.0 : v.x);
-    final double fspeed = brake ? 0.0 : v.x;
-    final double fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
+    final double fspeed = /*brake ? 0.0 :*/ v.x;
+    fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
     
     Vector2 impulse = new Vector2.zero();
     double momentum = 0.0;
@@ -53,17 +64,35 @@ class Car {
 
     v += impulse / weight;
     va += momentum / aMomentum;
+    Matrix2 rotMat = new Matrix2.rotation(a);
+    
+    pos += rotMat * v * dt;
+    a += va * dt;
   }
   
   ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle) {
-    Matrix2 rotMat = new Matrix2.rotation(-angle);
-    Vector2 speedForTire = rotMat * v;
-    Vector2 response = tire.response(speedForTire, wheelSpeed);
-    Vector2 impulse = response * (dt * weight / 4);
+    Matrix2 rotToTire = new Matrix2.rotation(-angle);
+    Matrix2 rotFromTire = new Matrix2.rotation(angle);
+    Matrix2 vaMat = new Matrix2(0.0, va, -va, 0.0);
+    Vector2 speed = v + vaMat * pos;
+    Vector2 tireSpeed = rotToTire * speed;
+    //print('${pos.x.toStringAsFixed(1)} ${pos.y.toStringAsFixed(1)}  ${tireSpeed.y.toStringAsFixed(3)}');
+    Vector2 tireResponse = tire.response(tireSpeed, wheelSpeed);
+    Vector2 tireImpulse = tireResponse * (dt * weight * g / 4);
+    Vector2 impulse = rotFromTire * tireImpulse;
+    
     double momentum = pos.cross(impulse);
     return new ImpulseAndMomentum(impulse, momentum);
   }
   
+  List<TirePosAndAngle> get tiresAndPos {
+    return [
+      new TirePosAndAngle(fl, fangle),
+      new TirePosAndAngle(fr, fangle),
+      new TirePosAndAngle(rl, 0.0),
+      new TirePosAndAngle(rr, 0.0)
+    ];
+  }
 }
 
 void main() {
@@ -79,5 +108,8 @@ void main() {
     car.updatePos(1.0, turnLeft: false, turnRight: false, accel: true, brake: false);
     expect(car.v.x, greaterThan(0.0), reason: "vx positive");
     expect(car.v.y, 0.0, reason: "vy");
+    expect(car.pos.x, greaterThan(0.0), reason: "x positive");
+    expect(car.pos.y, 0.0, reason: "y 0");
+    
   });
 }

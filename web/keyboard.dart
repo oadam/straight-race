@@ -1,3 +1,5 @@
+library keyboard;
+
 import 'dart:collection';
 import 'dart:html';
 
