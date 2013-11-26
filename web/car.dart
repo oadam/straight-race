@@ -18,12 +18,7 @@ class TirePosAndAngle {
 }
 
 class Car {
-  static const double bestGrip = 4.0;
-  static const double worstGrip = 2.0;
-  static const double bestDrift = 0.1;
-  static const double worstDrift = 0.3;
-  static const double longitudeFactor = 3.0;
-  final Tire tire = new Tire(bestGrip, bestDrift, worstGrip, worstDrift, longitudeFactor);
+  final Tire tire = new Tire();
 
   static const double length = 4.5;
   static const double width = 2.0;

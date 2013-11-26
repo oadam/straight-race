@@ -3,18 +3,18 @@ import 'package:vector_math/vector_math.dart';
 import 'dart:math' as math;
 
 class Tire {
-  final double bestGrip;
-  /**slip over speed ratio at best grip (ie 10%)*/
-  final double bestDrift;
-  final double worstGrip;
-  final double worstDrift;
-  final double longitudeFactor;
+  static const double bestGrip = 4.0;
+  static const double worstGrip = 2.0;
+  static const double bestDrift = 0.1;
+  static const double worstDrift = 0.3;
+  static const double longitudeFactor = 1.0;
+  
   static const double minRoadSpeed = 4.0;
   Matrix2 applyFactor;
   Matrix2 removeFactor;
   
   
-  Tire(this.bestGrip, this.bestDrift, this.worstGrip, this.worstDrift, this.longitudeFactor) {
+  Tire() {
     applyFactor = new Matrix2(1.0, 0.0, 0.0, longitudeFactor);
     removeFactor = applyFactor.clone();
     removeFactor.invert();
@@ -52,12 +52,7 @@ class Tire {
 
 
 main() {
-  const double bestGrip = 1.0;
-  const double bestDrift = 0.1;
-  const double worstGrip = 0.5;
-  const double worstDrift = 0.5;
-  const double longitudeFactor = 2.0;
-  var tire = new Tire(bestGrip, bestDrift, worstGrip, worstDrift, longitudeFactor);
+  var tire = new Tire();
   
   test('no response at 0 speed', () {
     Vector2 roadSpeed = new Vector2.zero();
@@ -71,7 +66,7 @@ main() {
     Vector2 roadSpeed = new Vector2(50.0, 0.0);
     double wheelSpeed = 0.0;
     Vector2 response = tire.response(roadSpeed, wheelSpeed);
-    expect(response.x, -worstGrip, reason: "x response");
+    expect(response.x, -Tire.worstGrip, reason: "x response");
     expect(response.y, 0.0, reason: "y response");
   });
   
@@ -80,7 +75,7 @@ main() {
     double wheelSpeed = 0.0;
     Vector2 response = tire.response(roadSpeed, wheelSpeed);
     expect(response.x, 0.0, reason: "x response");
-    expect(response.y, worstGrip / longitudeFactor, reason: "y response");
+    expect(response.y, Tire.worstGrip / Tire.longitudeFactor, reason: "y response");
   });
   
   
