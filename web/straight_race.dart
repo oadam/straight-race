@@ -77,13 +77,13 @@ void drawCar(CanvasRenderingContext2D context, Car car) {
     ..fillRect(-Car.length / 2.0, -Car.width / 2.0, Car.length, Car.width)
     ;
   //tires
-  context.setFillColorRgb(255, 255, 0);
+  context.setFillColorRgb(255, 255, 255);
   car.tiresAndPos.forEach((tireAndPos) {
     context
       ..save()
       ..translate(tireAndPos.pos.x, tireAndPos.pos.y)
       ..rotate(tireAndPos.angle)
-      ..fillRect(-Car.length / 30, -Car.width / 100, Car.length / 15, Car.width / 50)
+      ..fillRect(-Car.length / 30, -Car.width / 50, Car.length / 15, Car.width / 25)
       ..restore();
   });
   context

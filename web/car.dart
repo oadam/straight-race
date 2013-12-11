@@ -1,6 +1,7 @@
 library car;
 
 import 'tire.dart';
+import 'tire2.dart';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
 import 'package:unittest/unittest.dart';
@@ -18,7 +19,7 @@ class TirePosAndAngle {
 }
 
 class Car {
-  final Tire tire = new Tire();
+  final Tire tire = new Tire2();
 
   static const double length = 4.5;
   static const double width = 2.0;
@@ -38,7 +39,7 @@ class Car {
   double fangle = 0.0;
   
   void updatePos(num dt, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
-    final double rspeed = accel ? speed : (brake ? 0.0 : v.x);
+    final double rspeed = accel ? speed : (brake ? -speed : v.x);
     final double fspeed = /*brake ? 0.0 :*/ v.x;
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
     
@@ -72,8 +73,8 @@ class Car {
     Vector2 speed = v + vaMat * pos;
     Vector2 tireSpeed = rotToTire * speed;
     //print('${pos.x.toStringAsFixed(1)} ${pos.y.toStringAsFixed(1)}  ${tireSpeed.y.toStringAsFixed(3)}');
-    Vector2 tireResponse = tire.response(tireSpeed, wheelSpeed);
-    Vector2 tireImpulse = tireResponse * (dt * weight * g / 4);
+    Vector2 tireResponse = tire.response(tireSpeed, wheelSpeed, weight / 4);
+    Vector2 tireImpulse = tireResponse * (dt * g);
     Vector2 impulse = rotFromTire * tireImpulse;
     
     double momentum = pos.cross(impulse);
