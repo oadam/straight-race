@@ -19,7 +19,7 @@ class TirePosAndAngle {
 }
 
 class Car {
-  final Tire tire = new Tire2();
+  final Tire tire = new Tire();
 
   static const double length = 4.5;
   static const double width = 2.0;
@@ -39,9 +39,9 @@ class Car {
   double fangle = 0.0;
   
   void updatePos(num dt, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
-    final double rspeed = accel ? speed : (brake ? -speed : v.x);
-    final double fspeed = /*brake ? 0.0 :*/ v.x;
+    final double rspeed = accel ? speed : (brake ? 0.0 : v.x);
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
+    final double fspeed = /*brake ? 0.0 :*/ v.x * cos(fangle);
     
     Vector2 impulse = new Vector2.zero();
     double momentum = 0.0;
@@ -63,7 +63,9 @@ class Car {
     Matrix2 rotMat = new Matrix2.rotation(a);
     
     pos += rotMat * v * dt;
-    a += va * dt;
+    var da = va * dt;
+    a += da;
+    v = new Matrix2.rotation(-da) * v;
   }
   
   ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle) {

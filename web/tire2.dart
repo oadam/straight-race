@@ -18,8 +18,10 @@ class Tire2 implements Tire {
     double wheelSpeed = signSwitch * signedWheelSpeed;
     
     double slip;
-    if (roadSpeed.x == 0.0 || wheelSpeed == 0.0) {
-      slip = 1.0;
+    if (roadSpeed.x == 0.0) {
+      slip = wheelSpeed == 0.0 ? 0.0 : wheelSpeed > 0 ? 1.0 : -1.0;
+    } else if (wheelSpeed == 0.0) {
+      slip = roadSpeed.x > 0 ? -1.0 : 1.0;
     } else if (roadSpeed.x > wheelSpeed) {
       slip = (roadSpeed.x - wheelSpeed) / roadSpeed.x;
     } else {
@@ -56,7 +58,7 @@ class Tire2 implements Tire {
     assert(!fx.isNaN);
     assert(!fy.isNaN);
     
-    return new Vector2(fx, fy).scaled(signSwitch);
+    return new Vector2(fx, -fy).scaled(signSwitch);
   }
 }
 
@@ -90,6 +92,15 @@ main() {
     const fz = 2500.0;
     Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
     expect(response.x, isVeryLow, reason: "x response");
+    expect(response.y, greaterThan(0.0), reason: "y response");
+  });
+  
+  test('turning left at high speed', () {
+    Vector2 roadSpeed = new Vector2(40.0, -10.0);
+    double wheelSpeed = 50.0;
+    const fz = 2500.0;
+    Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+    expect(response.x, lessThan(0.0), reason: "x response");
     expect(response.y, greaterThan(0.0), reason: "y response");
   });
   
