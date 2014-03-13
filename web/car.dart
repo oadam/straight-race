@@ -19,7 +19,7 @@ class TirePosAndAngle {
 }
 
 class Car {
-  final Tire tire = new Tire2();
+  final Tire tire = new Tire();
 
   static const double length = 4.5;
   static const double width = 2.0;
@@ -66,10 +66,16 @@ class Car {
     Matrix2 daRotMat = new Matrix2.rotation(-da);
         
     pos += rotMat * v * dt;
+<<<<<<< HEAD
     //we rotated so we have to adjust our speed
     //because it in local coordinates
     v = daRotMat * v;
     a += da;
+=======
+    var da = va * dt;
+    a += da;
+    v = new Matrix2.rotation(-da) * v;
+>>>>>>> fcad1d8789cc7973430c9c137ec13c4969b7c310
   }
   
   ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle) {
