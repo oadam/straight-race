@@ -61,10 +61,15 @@ class Car {
 
     v += impulse / weight;
     va += momentum / aMomentum;
+    double da = va * dt;
     Matrix2 rotMat = new Matrix2.rotation(a);
-    
+    Matrix2 daRotMat = new Matrix2.rotation(-da);
+        
     pos += rotMat * v * dt;
-    a += va * dt;
+    //we rotated so we have to adjust our speed
+    //because it in local coordinates
+    v = daRotMat * v;
+    a += da;
   }
   
   ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle) {
