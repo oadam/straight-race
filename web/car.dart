@@ -39,9 +39,10 @@ class Car {
   double fangle = 0.0;
   
   void updatePos(num dt, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
-    final double rspeed = accel ? speed : (brake ? -speed : v.x);
-    final double fspeed = /*brake ? 0.0 :*/ v.x;
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
+    final double defaultFSpeed = v.x / cos(fangle);
+    final double rspeed = accel ? speed : (brake ? -speed : v.x);
+    final double fspeed = /*brake ? 0.0 :*/ defaultFSpeed;
     
     Vector2 impulse = new Vector2.zero();
     double momentum = 0.0;
