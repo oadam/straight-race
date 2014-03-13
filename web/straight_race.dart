@@ -8,7 +8,7 @@ class Camera {
   Vector2 pos = new Vector2.zero();
   Vector2 speed = new Vector2.zero();
   double zoom = 5.0;
-  static num tracking = 1.0e-1;//m.s-2 / m     1g at 10m
+  static num tracking = 4.0e-1;//m.s-2 / m     1g at 10m
   static num dumping = 2 * sqrt(tracking);//m.s-2 / m.s-1   1 g at 10m.s-1
   
   void updatePos(Vector2 target, Vector2 targetSpeed, double dt) {
@@ -26,6 +26,8 @@ class Game {
   final int width;
   final int height;
   
+  final NumberInputElement angleInput;
+  
   num lastUpdateTime = null;
   
   static const num speed = 3;
@@ -36,10 +38,18 @@ class Game {
     context = canvas.getContext("2d"),
     width = canvas.width,
     height = canvas.height,
+    angleInput = document.createElement("input", "number"),
     camera = new Camera() {
     car.pos = new Vector2(.0, .0);
     car.a = 0.0;
     camera.pos = car.pos;
+    
+    angleInput.attributes["type"] = "number";
+    angleInput.valueAsNumber = 20;
+    document.body.append(angleInput);
+    angleInput.onChange.forEach((event) {
+      Car.angle = angleInput.valueAsNumber / 180 * PI;
+    });
     
     window.requestAnimationFrame(this.update);
   }
@@ -77,7 +87,7 @@ class Game {
     context.setFillColorRgb(0, 0, 255);
     for (var x = -camera.zoom * camera.pos.x % zoomedDotDist; x < width; x+= zoomedDotDist) {
       for (var y = -camera.zoom * camera.pos.y % zoomedDotDist; y < height; y+= zoomedDotDist) {
-        context.fillRect(x, y, 1, 1);
+        context.fillRect(x-1, y-1, 3, 3);
       } 
     }
     context.translate(width/2, height/2);

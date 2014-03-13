@@ -27,7 +27,7 @@ class Car {
   static const double g = 9.8;
   static const double aMomentum = (length * length + width * width) * weight / 12;
   static const double speed = 40.0;
-  static const double angle = 20 * PI / 180;
+  static double angle = 20 * PI / 180;
   
   
   Vector2 pos = new Vector2.zero(), v = new Vector2.zero();
@@ -42,7 +42,7 @@ class Car {
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
     final double defaultFSpeed = v.x / cos(fangle);
     final double rspeed = accel ? speed : (brake ? -speed : v.x);
-    final double fspeed = /*brake ? 0.0 :*/ defaultFSpeed;
+    final double fspeed = /*brake ? 0.0 : */defaultFSpeed;
     
     Vector2 impulse = new Vector2.zero();
     double momentum = 0.0;
@@ -66,16 +66,10 @@ class Car {
     Matrix2 daRotMat = new Matrix2.rotation(-da);
         
     pos += rotMat * v * dt;
-<<<<<<< HEAD
     //we rotated so we have to adjust our speed
-    //because it in local coordinates
+    //because it is in local coordinates
     v = daRotMat * v;
     a += da;
-=======
-    var da = va * dt;
-    a += da;
-    v = new Matrix2.rotation(-da) * v;
->>>>>>> fcad1d8789cc7973430c9c137ec13c4969b7c310
   }
   
   ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle) {

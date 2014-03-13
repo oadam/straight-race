@@ -5,9 +5,9 @@ import 'dart:math' as math;
 class Tire {
   static const double bestGrip = 3.0;
   static const double worstGrip = 2.0;
-  static const double bestDrift = 0.1;
-  static const double worstDrift = 0.3;
-  static const double longitudeFactor = 8.0;
+  static const double bestDrift = 0.1*10;
+  static const double worstDrift = 0.3*10;
+  static const double longitudeFactor = 2.0;
   
   static const double minRoadSpeed = 1.0;
   Matrix2 _applyFactor;
