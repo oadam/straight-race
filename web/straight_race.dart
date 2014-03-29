@@ -26,6 +26,8 @@ class Game {
   final int width;
   final int height;
   
+  bool paused = false;
+  
   final NumberInputElement angleInput;
   
   num lastUpdateTime = null;
@@ -44,6 +46,14 @@ class Game {
     car.a = 0.0;
     camera.pos = car.pos;
     
+    window.onKeyDown.forEach((event) {
+      int keycode = event.keyCode;
+      if (event.keyCode == 80) {//'p'
+        paused = !paused;
+        window.requestAnimationFrame(update);
+      }
+    });
+    
     angleInput.attributes["type"] = "number";
     angleInput.valueAsNumber = 20;
     document.body.append(angleInput);
@@ -55,6 +65,7 @@ class Game {
   }
 
   update(num time) {
+    if (paused) {return;}
     if (lastUpdateTime != null) {
       num ellapsed = time - lastUpdateTime;
       lastUpdateTime = time;
