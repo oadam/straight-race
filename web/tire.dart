@@ -53,33 +53,62 @@ class Tire {
 
 main() {
   var tire = new Tire();
-  
-  test('no response at 0 speed', () {
-    Vector2 roadSpeed = new Vector2.zero();
-    double wheelSpeed = 0.0;
-    const fz = 2500.0;
-    Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
-    expect(response.x, 0.0, reason: "x response");
-    expect(response.y, 0.0, reason: "y response");
-  });
-  
-  test('grip at high longitudinal speed', () {
-    Vector2 roadSpeed = new Vector2(50.0, 0.0);
-    double wheelSpeed = 0.0;
-    const fz = 2500.0;
-    Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
-    expect(response.x, -Tire.worstGrip * fz, reason: "x response");
-    expect(response.y, 0.0, reason: "y response");
-  });
-  
-  test('grip at high lateral speed', () {
-    Vector2 roadSpeed = new Vector2(0.0, -50.0);
-    double wheelSpeed = 0.0;
-    const fz = 2500.0;
-    Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
-    expect(response.x, 0.0, reason: "x response");
-    expect(response.y, fz * Tire.worstGrip / Tire.longitudeFactor, reason: "y response");
-  });
+ 
+  Matcher isVeryLow = closeTo(0.0, 1e-5);
+    
+  test('no error at 0 speed', () {
+      Vector2 roadSpeed = new Vector2.zero();
+      double wheelSpeed = 0.0;
+      const fz = 2500.0;
+      Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+      expect(response.x.isNaN, isFalse, reason: "x response");
+      expect(response.y.isNaN, isFalse, reason: "y response");
+    });
+    
+    test('grip at high longitudinal speed', () {
+      Vector2 roadSpeed = new Vector2(50.0, 0.0);
+      double wheelSpeed = 0.1;
+      const fz = 2500.0;
+      Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+      expect(response.x, lessThan(0.0), reason: "x response");
+      expect(response.y, isVeryLow, reason: "y response");
+    });
+    
+    test('grip at high lateral speed', () {
+        Vector2 roadSpeed = new Vector2(0.0, -50.0);
+        double wheelSpeed = 0.0;
+        const fz = 2500.0;
+        Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+        expect(response.x, isVeryLow, reason: "x response");
+        expect(response.y, greaterThan(0.0), reason: "y response");
+      });
+    
+    test('grip when accelerating', () {
+        Vector2 roadSpeed = new Vector2(50.0, 0.0);
+        double wheelSpeed = 55.0;
+        const fz = 2500.0;
+        Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+        expect(response.x, greaterThan(0.0), reason: "x response");
+        expect(response.y, isVeryLow, reason: "y response");
+     });
+    
+    test('grip when breaking', () {
+            Vector2 roadSpeed = new Vector2(50.0, 0.0);
+            double wheelSpeed = 45.0;
+            const fz = 2500.0;
+            Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+            expect(response.x, lessThan(0.0), reason: "x response");
+            expect(response.y, isVeryLow, reason: "y response");
+      });
+      
+    test('accelerating when going backward', () {
+            Vector2 roadSpeed = new Vector2(-50.0, 0.0);
+            double wheelSpeed = 45.0;
+            const fz = 2500.0;
+            Vector2 response = tire.response(roadSpeed, wheelSpeed, fz);
+            expect(response.x, greaterThan(0.0), reason: "x response");
+            expect(response.y, isVeryLow, reason: "y response");
+     });
   
   
 }
