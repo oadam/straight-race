@@ -27,6 +27,7 @@ class Car {
   static const double g = 9.8;
   static const double aMomentum = (length * length + width * width) * weight / 12;
   static const double speed = 40.0;
+  static const double rearSpeedThreshold = 4.0;
   static double angle = 20 * PI / 180;
   
   
@@ -40,9 +41,31 @@ class Car {
   
   void updatePos(num dt, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
-    final double defaultFSpeed = v.x / cos(fangle);
-    final double rspeed = accel ? speed : (brake ? -speed : v.x);
-    final double fspeed = /*brake ? 0.0 : */defaultFSpeed;
+    double rspeed, fspeed;
+    double accelPlusBrake = 0.0;
+    if (accel) {
+      accelPlusBrake+= 1.0;
+    }
+    if (brake) {
+      accelPlusBrake-= 1.0;
+    }
+    
+    final double defaultFSpeed = v.x / cos(fangle);  
+    if (accelPlusBrake == 0.0) {
+      rspeed = v.x;
+      fspeed = defaultFSpeed;
+    } else {
+      //brake if:
+      //braking and going faster that rearSpeedThreshold
+      //accelerating and going faster backward than rearSpeedThreshold
+      if (accelPlusBrake * (v.x + accelPlusBrake * rearSpeedThreshold) < 0) {
+        rspeed = 0.0;
+        fspeed = 0.0;
+      } else {
+        rspeed = accelPlusBrake * speed;
+        fspeed = defaultFSpeed;
+      }
+    }
     
     Vector2 impulse = new Vector2.zero();
     double momentum = 0.0;
