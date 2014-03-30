@@ -56,7 +56,7 @@ class Game {
     });
 
     angleInput.attributes["type"] = "number";
-    angleInput.valueAsNumber = 20;
+    angleInput.valueAsNumber = Car.angle / PI * 180;
     document.body.append(angleInput);
     angleInput.onChange.forEach((event) {
       Car.angle = angleInput.valueAsNumber / 180 * PI;
