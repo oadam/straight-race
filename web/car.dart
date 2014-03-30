@@ -21,22 +21,26 @@ class TirePosAndAngle {
 class Car {
   final Tire tire = new Tire();
 
-  static const double length = 4.5;
-  static const double width = 2.0;
+  static const double imageRatio = 4.5 / 500;
+  static const double length = 500 * imageRatio;
+  static const double width = 238 * imageRatio;
+  static const double frontWheels = 170 * imageRatio;
+  static const double rearWheels = -145 * imageRatio;
+  static const double lateralWheels = 90 * imageRatio;
   static const double weight = 1000.0;
   static const double g = 9.8;
   static const double aMomentum = (length * length + width * width) * weight / 12;
   static const double speed = 40.0;
   static const double rearSpeedThreshold = 4.0;
-  static double angle = 20 * PI / 180;
+  static double angle = 40 * PI / 180;
   
   
   Vector2 pos = new Vector2.zero(), v = new Vector2.zero();
   double a = 0.0, va = 0.0;
-  static final Vector2 fl = new Vector2(0.45*length, -0.45*width);
-  static final Vector2 fr = new Vector2(0.45*length, 0.45*width);
-  static final Vector2 rl = new Vector2(-0.45*length, -0.45*width);
-  static final Vector2 rr = new Vector2(-0.45*length, 0.45*width);
+  static final Vector2 fl = new Vector2(frontWheels, -lateralWheels);
+  static final Vector2 fr = new Vector2(frontWheels, lateralWheels);
+  static final Vector2 rl = new Vector2(rearWheels, -lateralWheels);
+  static final Vector2 rr = new Vector2(rearWheels, lateralWheels);
   double fangle = 0.0;
   
   void updatePos(num dt, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
