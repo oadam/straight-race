@@ -120,7 +120,7 @@ class Game {
 
     context.restore();
 
-    document.getElementById("log").text = "pos ${car.pos.x.toStringAsExponential(3)}/${car.pos.y.toStringAsExponential(3)} : v ${car.v.x.toStringAsExponential(3)}/${car.v.y.toStringAsExponential(3)}";
+    document.getElementById("log").text = "pos ${car.pos.x.toStringAsFixed(2)}/${car.pos.y.toStringAsFixed(2)} : v ${car.v.x.toStringAsFixed(2)}/${car.v.y.toStringAsFixed(2)} : v ${(car.v.length * 3.6).toStringAsFixed(0)}km/h";
     lastUpdateTime = time;
     window.requestAnimationFrame(update);
   }
