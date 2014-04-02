@@ -7,8 +7,8 @@ import 'dart:math';
 class Camera {
   Vector2 pos = new Vector2.zero();
   Vector2 speed = new Vector2.zero();
-  double zoom = 8.0;
-  static num tracking = 4.0e-1;//m.s-2 / m     1g at 10m
+  double zoom = 12.0;
+  static num tracking = 4.0e-1 * 4;//m.s-2 / m     1g at 10m
   static num dumping = 2 * sqrt(tracking);//m.s-2 / m.s-1   1 g at 10m.s-1
 
   void updatePos(Vector2 target, Vector2 targetSpeed, double dt) {

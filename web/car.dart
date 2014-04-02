@@ -31,7 +31,11 @@ class Car {
   static const double g = 9.8;
   static const double aMomentum = (length * length + width * width) * weight / 12;
   static const double power = 141e3;//W
-  static const double rearSpeedThreshold = 4.0;
+  static const double maxSpeed = 50.0;//m.s-1
+  //the power of airBrake is v * (airBrake * v^2)
+  static const double airBrake = power / maxSpeed / maxSpeed / maxSpeed;
+///The speed under which we switch from braking to reverse gear
+  static const double rearSpeedThreshold = 4.0;//m.s-1
   static double angle = 40 * PI / 180;
   
   
@@ -83,6 +87,8 @@ class Car {
     
     Vector2 impulse = new Vector2.zero();
     double momentum = 0.0;
+    //air brake
+    impulse -= v * airBrake * v.length * dt;
     ImpulseAndMomentum imfl = updatePosForTire(dt, fl, fspeed, fangle);
     impulse += imfl.impulse;
     momentum += imfl.momentum;
