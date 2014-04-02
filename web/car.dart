@@ -30,7 +30,7 @@ class Car {
   static const double weight = 1000.0;
   static const double g = 9.8;
   static const double aMomentum = (length * length + width * width) * weight / 12;
-  static const double speed = 40.0;
+  static const double power = 141e3;//W
   static const double rearSpeedThreshold = 4.0;
   static double angle = 40 * PI / 180;
   
@@ -66,8 +66,18 @@ class Car {
         rspeed = 0.0;
         fspeed = 0.0;
       } else {
-        rspeed = accelPlusBrake * speed;
         fspeed = defaultFSpeed;
+
+        double dvx = accelPlusBrake * Tire.bestDrift;
+        if (v.x != 0) {
+          //if power is an issue, we are on the part of the curve where tireForce = dvx / Tire.bestDrift * Tire.bestGrip
+          const int poweredWheelsCount = 2;
+          double dvxAtMaxPower = power / poweredWheelsCount / weight / v.x.abs() * Tire.bestDrift / Tire.bestGrip;
+          if (dvx.abs() > dvxAtMaxPower) {
+            dvx = dvx.clamp(-dvxAtMaxPower, dvxAtMaxPower);
+          }
+        }
+        rspeed = v.x + dvx;
       }
     }
     
