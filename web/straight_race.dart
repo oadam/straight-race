@@ -28,6 +28,7 @@ class Game {
 
   final ImageElement carImage = new ImageElement(src: 'car.png');
   bool paused = false;
+  bool firstIterationAfterPause = false;
 
   final NumberInputElement angleInput;
 
@@ -51,6 +52,7 @@ class Game {
       int keycode = event.keyCode;
       if (event.keyCode == 80) {//'p'
         paused = !paused;
+        firstIterationAfterPause = true;
         window.requestAnimationFrame(update);
       }
     });
@@ -64,23 +66,25 @@ class Game {
 
     window.requestAnimationFrame(this.update);
   }
-
+  
   update(num time) {
     if (paused) {return;}
-    if (lastUpdateTime != null) {
-      num ellapsed = time - lastUpdateTime;
+    if (lastUpdateTime == null || firstIterationAfterPause) {
       lastUpdateTime = time;
-      num dt = ellapsed / 1000.0;
+      firstIterationAfterPause = false;
+    }
+    num ellapsed = time - lastUpdateTime;
+    lastUpdateTime = time;
+    num dt = ellapsed / 1000.0;
 
-      car.updatePos(dt,
-          turnLeft: keyboard.isPressed(KeyCode.LEFT),
-          turnRight: keyboard.isPressed(KeyCode.RIGHT),
-          accel: keyboard.isPressed(KeyCode.UP),
-          brake: keyboard.isPressed(KeyCode.DOWN)
-      );
+    car.updatePos(dt,
+        turnLeft: keyboard.isPressed(KeyCode.LEFT),
+        turnRight: keyboard.isPressed(KeyCode.RIGHT),
+        accel: keyboard.isPressed(KeyCode.UP),
+        brake: keyboard.isPressed(KeyCode.DOWN)
+    );
 
-      camera.updatePos(car.pos, new Matrix2.rotation(car.a) * car.v, dt);
-     }
+    camera.updatePos(car.pos, new Matrix2.rotation(car.a) * car.v, dt); 
 
     //clear
     context
