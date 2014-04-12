@@ -67,24 +67,28 @@ class Game {
     window.requestAnimationFrame(this.update);
   }
   
+  static const double _WORLD_STEP_MS = 1000.0 / 60;
+  static const double _WORLD_STEP = _WORLD_STEP_MS / 1000;
+    
   update(num time) {
     if (paused) {return;}
     if (lastUpdateTime == null || firstIterationAfterPause) {
       lastUpdateTime = time;
       firstIterationAfterPause = false;
     }
-    num ellapsed = time - lastUpdateTime;
-    lastUpdateTime = time;
-    num dt = ellapsed / 1000.0;
-
-    car.updatePos(dt,
-        turnLeft: keyboard.isPressed(KeyCode.LEFT),
-        turnRight: keyboard.isPressed(KeyCode.RIGHT),
-        accel: keyboard.isPressed(KeyCode.UP),
-        brake: keyboard.isPressed(KeyCode.DOWN)
-    );
-
-    camera.updatePos(car.pos, new Matrix2.rotation(car.a) * car.v, dt); 
+    int nbStep = ((time - lastUpdateTime) / _WORLD_STEP_MS).floor();
+    lastUpdateTime += _WORLD_STEP_MS * nbStep;
+    
+    for (var i = 0; i < nbStep; i++) {
+      car.updatePos(_WORLD_STEP,
+          turnLeft: keyboard.isPressed(KeyCode.LEFT),
+          turnRight: keyboard.isPressed(KeyCode.RIGHT),
+          accel: keyboard.isPressed(KeyCode.UP),
+          brake: keyboard.isPressed(KeyCode.DOWN)
+      );
+      
+      camera.updatePos(car.pos, new Matrix2.rotation(car.a) * car.v, _WORLD_STEP); 
+    }
 
     //clear
     context
@@ -125,7 +129,6 @@ class Game {
     context.restore();
 
     document.getElementById("log").text = "pos ${car.pos.x.toStringAsFixed(2)}/${car.pos.y.toStringAsFixed(2)} : v ${car.v.x.toStringAsFixed(2)}/${car.v.y.toStringAsFixed(2)} : v ${(car.v.length * 3.6).toStringAsFixed(0)}km/h";
-    lastUpdateTime = time;
     window.requestAnimationFrame(update);
   }
 
