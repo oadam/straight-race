@@ -58,10 +58,12 @@ class Car {
       accelPlusBrake-= 1.0;
     }
     
-    final double defaultFSpeed = v.x / cos(fangle);  
+    bool noTorqueR = false, noTorqueF = false;
     if (accelPlusBrake == 0.0) {
-      rspeed = v.x;
-      fspeed = defaultFSpeed;
+      rspeed = double.NAN;
+      fspeed = double.NAN;
+      noTorqueR = true;
+      noTorqueF = true;
     } else {
       //brake if:
       //braking and going faster that rearSpeedThreshold
@@ -70,7 +72,8 @@ class Car {
         rspeed = 0.0;
         fspeed = 0.0;
       } else {
-        fspeed = defaultFSpeed;
+        fspeed = double.NAN;
+        noTorqueF = true;
 
         double dvx = accelPlusBrake * Tire.bestDrift;
         if (v.x != 0) {
@@ -89,16 +92,16 @@ class Car {
     double momentum = 0.0;
     //air brake
     impulse -= v * airBrake * v.length * dt;
-    ImpulseAndMomentum imfl = updatePosForTire(dt, fl, fspeed, fangle);
+    ImpulseAndMomentum imfl = updatePosForTire(dt, fl, fspeed, fangle, noTorqueF);
     impulse += imfl.impulse;
     momentum += imfl.momentum;
-    ImpulseAndMomentum imfr = updatePosForTire(dt, fr, fspeed, fangle);
+    ImpulseAndMomentum imfr = updatePosForTire(dt, fr, fspeed, fangle, noTorqueF);
     impulse += imfr.impulse;
     momentum += imfr.momentum;
-    ImpulseAndMomentum imrl = updatePosForTire(dt, rl, rspeed, 0.0);
+    ImpulseAndMomentum imrl = updatePosForTire(dt, rl, rspeed, 0.0, noTorqueR);
     impulse += imrl.impulse;
     momentum += imrl.momentum;
-    ImpulseAndMomentum imrr = updatePosForTire(dt, rr, rspeed, 0.0);
+    ImpulseAndMomentum imrr = updatePosForTire(dt, rr, rspeed, 0.0, noTorqueR);
     impulse += imrr.impulse;
     momentum += imrr.momentum;
 
@@ -115,13 +118,16 @@ class Car {
     a += da;
   }
   
-  ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle) {
+  ImpulseAndMomentum updatePosForTire(num dt, Vector2 pos, double wheelSpeed, double angle, bool useNoTorqueWheelSpeed) {
     Matrix2 rotToTire = new Matrix2.rotation(-angle);
     Matrix2 rotFromTire = new Matrix2.rotation(angle);
     Matrix2 vaMat = new Matrix2(0.0, va, -va, 0.0);
     Vector2 speed = v + vaMat * pos;
     Vector2 tireSpeed = rotToTire * speed;
     //print('${pos.x.toStringAsFixed(1)} ${pos.y.toStringAsFixed(1)}  ${tireSpeed.y.toStringAsFixed(3)}');
+    if (useNoTorqueWheelSpeed) {
+      wheelSpeed = tireSpeed.x;
+    }
     Vector2 tireResponse = tire.response(tireSpeed, wheelSpeed, weight / 4);
     Vector2 tireImpulse = tireResponse * (dt * g);
     Vector2 impulse = rotFromTire * tireImpulse;
