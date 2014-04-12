@@ -4,3 +4,4 @@ dependencies:
   browser: any
   unittest: any
   vector_math: any
+  box2d: any

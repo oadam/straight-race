@@ -3,6 +3,9 @@ import 'car.dart';
 import 'keyboard.dart';
 import 'package:vector_math/vector_math.dart';
 import 'dart:math';
+import 'package:box2d/box2d.dart';
+import 'package:box2d/box2d_browser.dart';
+
 
 class Camera {
   Vector2 pos = new Vector2.zero();
@@ -26,6 +29,9 @@ class Game {
   final int width;
   final int height;
 
+  final World world = new World(new Vector2(.0, .0), false, new DefaultWorldPool());
+  static const double worldStep = 0.05;
+  
   final ImageElement carImage = new ImageElement(src: 'car.png');
   bool paused = false;
   bool firstIterationAfterPause = false;
@@ -36,6 +42,11 @@ class Game {
 
   static const num speed = 3;
   static const num speedRot = 0.04;
+  
+  static const num _WORLD_STEP = 1 / 60;
+  static const num _VELOCITY_ITERATIONS = 1 / 60;
+  static const num _POSITION_ITERATIONS = 1 / 60;
+    
 
   Game(CanvasElement canvas):
     keyboard = new Keyboard(),
@@ -47,7 +58,11 @@ class Game {
     car.pos = new Vector2(.0, .0);
     car.a = 0.0;
     camera.pos = car.pos;
-
+    Vector2 extents = new Vector2(canvas.width / 2, canvas.height / 2);
+    CanvasViewportTransform viewport = new CanvasViewportTransform(extents, extents);
+    CanvasDraw debugDraw = new CanvasDraw(viewport, context);
+    world.debugDraw = debugDraw;
+    
     window.onKeyDown.forEach((event) {
       int keycode = event.keyCode;
       if (event.keyCode == 80) {//'p'
