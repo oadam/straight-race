@@ -23,13 +23,17 @@ class Camera {
 class Game {
   final Keyboard keyboard;
 
+  final World world = new World(new Vector2(.0, .0), false, new DefaultWorldPool());
   final Car car = new Car();
+  Body carBody;
+  List<Body> wallBodies = [];
+  final Vector2 wallSize = new Vector2(1.0, 300.0);
+  
   final Camera camera;
   final CanvasRenderingContext2D context;
   final int width;
   final int height;
 
-  final World world = new World(new Vector2(.0, .0), false, new DefaultWorldPool());
   static const double worldStep = 0.05;
   
   final ImageElement carImage = new ImageElement(src: 'car.png');
@@ -55,9 +59,40 @@ class Game {
     height = canvas.height,
     angleInput = document.createElement("input", "number"),
     camera = new Camera() {
-    car.pos = new Vector2(.0, .0);
-    car.a = 0.0;
-    camera.pos = car.pos;
+    
+    //car
+    BodyDef bd = new BodyDef();
+    bd.type = BodyType.DYNAMIC;
+    bd.position = new Vector2(-3.0, .0);
+    bd.angle = 0.0;
+    carBody = world.createBody(bd);
+
+    List<PolygonShape> shapes = Car.getShapes();
+    double totalSurface = shapes.fold(0.0, (s, fd) {
+      MassData md = new MassData();
+      fd.computeMass(md, 1);
+      return s + md.mass;
+    });
+    for (PolygonShape sd in shapes) {
+      FixtureDef fd = new FixtureDef();
+      fd.shape = sd;
+      fd.density = Car.weight / totalSurface;
+      fd.restitution = 0.2;
+      fd.friction = 0.3;
+      carBody.createFixture(fd);
+    }
+    
+    //wall
+    PolygonShape wallShape = new PolygonShape();
+    wallShape.setAsBox(wallSize.x * 0.5, wallSize.y * 0.5);
+    BodyDef wbd = new BodyDef();
+    wbd.position = new Vector2(0.0, -10.0);
+    Body wallBody = world.createBody(wbd);
+    wallBody.createFixtureFromShape(wallShape);
+    wallBodies.add(wallBody);
+    
+    camera.pos = carBody.position;
+    
     Vector2 extents = new Vector2(canvas.width / 2, canvas.height / 2);
     CanvasViewportTransform viewport = new CanvasViewportTransform(extents, extents);
     CanvasDraw debugDraw = new CanvasDraw(viewport, context);
@@ -82,8 +117,7 @@ class Game {
     window.requestAnimationFrame(this.update);
   }
   
-  static const double _WORLD_STEP_MS = 1000.0 / 60;
-  static const double _WORLD_STEP = _WORLD_STEP_MS / 1000;
+  static const double _WORLD_STEP_MS = _WORLD_STEP * 1000;
     
   update(num time) {
     if (paused) {return;}
@@ -93,22 +127,26 @@ class Game {
     }
     int nbStep = ((time - lastUpdateTime) / _WORLD_STEP_MS).floor();
     lastUpdateTime += _WORLD_STEP_MS * nbStep;
-    
     for (var i = 0; i < nbStep; i++) {
-      car.updatePos(_WORLD_STEP,
-          turnLeft: keyboard.isPressed(KeyCode.LEFT),
+      car.applyForces(carBody, turnLeft: keyboard.isPressed(KeyCode.LEFT),
           turnRight: keyboard.isPressed(KeyCode.RIGHT),
           accel: keyboard.isPressed(KeyCode.UP),
           brake: keyboard.isPressed(KeyCode.DOWN)
       );
       
-      camera.updatePos(car.pos, new Matrix2.rotation(car.a) * car.v, _WORLD_STEP); 
+      world.step(_WORLD_STEP, 10, 10);
+      camera.updatePos(carBody.position, carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()), _WORLD_STEP); 
     }
-
+    
     //clear
     context
       ..setFillColorRgb(255, 0, 0)
       ..fillRect(0, 0, width, height);
+
+    /*world.drawDebugData();
+    document.getElementById("log").text = "v ${(carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
+    window.requestAnimationFrame(update);
+    return;*/
 
     context
       ..save()
@@ -130,27 +168,32 @@ class Game {
 
     context
       ..scale(camera.zoom, camera.zoom);
+    context.translate(- camera.pos.x, -camera.pos.y);
 
+    //draw walls
+    context.setFillColorRgb(255, 255, 255);
+    for(Body b in wallBodies) {
+      context.fillRect(b.position.x - wallSize.x / 2, b.position.y - wallSize.y / 2, wallSize.x, wallSize.y);
+    }
 
     //draw car
     context.save();
-    context.translate(car.pos.x - camera.pos.x, car.pos.y - camera.pos.y);
-    drawCar(context, car);
+    context.translate(carBody.position.x, carBody.position.y);
+    context.rotate(carBody.angle);
+    drawCar(context);
     context.restore();
 
 
-
-
     context.restore();
 
-    document.getElementById("log").text = "pos ${car.pos.x.toStringAsFixed(2)}/${car.pos.y.toStringAsFixed(2)} : v ${car.v.x.toStringAsFixed(2)}/${car.v.y.toStringAsFixed(2)} : v ${(car.v.length * 3.6).toStringAsFixed(0)}km/h";
+    
+    document.getElementById("log").text = "v ${(carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
     window.requestAnimationFrame(update);
   }
 
-  void drawCar(CanvasRenderingContext2D context, Car car) {
+  void drawCar(CanvasRenderingContext2D context) {
     context
       ..save()
-      ..rotate(car.a)
       ..lineWidth = 0.01
       ..setFillColorRgb(0, 255, 0)
       ..save()
