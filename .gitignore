@@ -3,6 +3,7 @@
 // Don’t commit the following files and directories created by pub, Dart Editor, and dart2js
 packages/
 web/packages
+build
 .project
 .buildlog
 *.js_

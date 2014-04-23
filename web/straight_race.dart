@@ -57,14 +57,14 @@ class Game {
     context = canvas.getContext("2d"),
     width = canvas.width,
     height = canvas.height,
-    angleInput = document.createElement("input", "number"),
+    angleInput = document.getElementById("steering"),
     camera = new Camera() {
     
     //car
     BodyDef bd = new BodyDef();
     bd.type = BodyType.DYNAMIC;
-    bd.position = new Vector2(-3.0, .0);
-    bd.angle = 0.0;
+    bd.position = new Vector2(.0, .0);
+    bd.angle = PI / 2;
     carBody = world.createBody(bd);
 
     List<PolygonShape> shapes = Car.getShapes();
@@ -77,19 +77,21 @@ class Game {
       FixtureDef fd = new FixtureDef();
       fd.shape = sd;
       fd.density = Car.weight / totalSurface;
-      fd.restitution = 0.2;
-      fd.friction = 0.3;
+      fd.restitution = 0.5;
+      fd.friction = 0.1;
       carBody.createFixture(fd);
     }
     
     //wall
-    PolygonShape wallShape = new PolygonShape();
-    wallShape.setAsBox(wallSize.x * 0.5, wallSize.y * 0.5);
-    BodyDef wbd = new BodyDef();
-    wbd.position = new Vector2(0.0, -10.0);
-    Body wallBody = world.createBody(wbd);
-    wallBody.createFixtureFromShape(wallShape);
-    wallBodies.add(wallBody);
+    for (double offset in [-10.0, 10.0]) {
+      PolygonShape wallShape = new PolygonShape();
+      wallShape.setAsBox(wallSize.x * 0.5, wallSize.y * 0.5);
+      BodyDef wbd = new BodyDef();
+      wbd.position = new Vector2(offset, 0.0);
+      Body wallBody = world.createBody(wbd);
+      wallBody.createFixtureFromShape(wallShape);
+      wallBodies.add(wallBody);
+    }
     
     camera.pos = carBody.position;
     
@@ -107,11 +109,9 @@ class Game {
       }
     });
 
-    angleInput.attributes["type"] = "number";
-    angleInput.valueAsNumber = Car.angle / PI * 180;
-    document.body.append(angleInput);
+    angleInput.value = (Car.angle / PI * 180).toStringAsFixed(1);
     angleInput.onChange.forEach((event) {
-      Car.angle = angleInput.valueAsNumber / 180 * PI;
+      Car.angle = double.parse(angleInput.value) / 180 * PI;
     });
 
     window.requestAnimationFrame(this.update);
@@ -135,7 +135,14 @@ class Game {
       );
       
       world.step(_WORLD_STEP, 10, 10);
-      camera.updatePos(carBody.position, carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()), _WORLD_STEP); 
+      camera.updatePos(carBody.position, carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()), _WORLD_STEP);
+      
+      for (var sig in [-1.0, 1.0]) {
+        if (carBody.position.y * sig > 10.0) {
+          carBody.setTransform(carBody.position - new Vector2(.0,  10.0) * sig, carBody.angle);
+          camera.pos.y -= sig * 10.0;
+        }
+      }
     }
     
     //clear
@@ -186,8 +193,7 @@ class Game {
 
     context.restore();
 
-    
-    document.getElementById("log").text = "v ${(carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
+    document.getElementById("log").text = "speed ${(carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
     window.requestAnimationFrame(update);
   }
 
