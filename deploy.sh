@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 rm -rf build || exit 0;
 mkdir build; 
 pub build
