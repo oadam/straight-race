@@ -26,6 +26,7 @@ class Game {
   final World world = new World(new Vector2(.0, .0), false, new DefaultWorldPool());
   final Car car = new Car();
   Body carBody;
+  Body botCarBody;
   List<Body> wallBodies = [];
   final Vector2 wallSize = new Vector2(1.0, 300.0);
   
@@ -51,6 +52,7 @@ class Game {
   static const num _VELOCITY_ITERATIONS = 1 / 60;
   static const num _POSITION_ITERATIONS = 1 / 60;
     
+  static const double WALL_OFFSET = 10.0;
 
   Game(CanvasElement canvas):
     keyboard = new Keyboard(),
@@ -63,9 +65,11 @@ class Game {
     //car
     BodyDef bd = new BodyDef();
     bd.type = BodyType.DYNAMIC;
-    bd.position = new Vector2(.0, .0);
+    bd.position = new Vector2(.0, -2.0);
     bd.angle = PI / 2;
     carBody = world.createBody(bd);
+    bd.position = new Vector2(.0, 2.0);
+    botCarBody = world.createBody(bd);
 
     List<PolygonShape> shapes = Car.getShapes();
     double totalSurface = shapes.fold(0.0, (s, fd) {
@@ -80,10 +84,11 @@ class Game {
       fd.restitution = 0.5;
       fd.friction = 0.1;
       carBody.createFixture(fd);
+      botCarBody.createFixture(fd);
     }
     
     //wall
-    for (double offset in [-10.0, 10.0]) {
+    for (double offset in [-WALL_OFFSET, WALL_OFFSET]) {
       PolygonShape wallShape = new PolygonShape();
       wallShape.setAsBox(wallSize.x * 0.5, wallSize.y * 0.5);
       BodyDef wbd = new BodyDef();
@@ -128,18 +133,24 @@ class Game {
     int nbStep = ((time - lastUpdateTime) / _WORLD_STEP_MS).floor();
     lastUpdateTime += _WORLD_STEP_MS * nbStep;
     for (var i = 0; i < nbStep; i++) {
-      car.applyForces(carBody, turnLeft: keyboard.isPressed(KeyCode.LEFT),
+      car.applyForces(carBody, [botCarBody], turnLeft: keyboard.isPressed(KeyCode.LEFT),
           turnRight: keyboard.isPressed(KeyCode.RIGHT),
           accel: keyboard.isPressed(KeyCode.UP),
           brake: keyboard.isPressed(KeyCode.DOWN)
       );
-      
+      car.applyForces(botCarBody, [carBody], turnLeft: botCarBody.position.x > 0.6 * WALL_OFFSET,
+          turnRight: botCarBody.position.x < - 0.6 * WALL_OFFSET,
+          accel: true,
+          brake: false
+      );
+            
       world.step(_WORLD_STEP, 10, 10);
       camera.updatePos(carBody.position, carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()), _WORLD_STEP);
       
       for (var sig in [-1.0, 1.0]) {
         if (carBody.position.y * sig > 10.0) {
           carBody.setTransform(carBody.position - new Vector2(.0,  10.0) * sig, carBody.angle);
+          botCarBody.setTransform(botCarBody.position - new Vector2(.0,  10.0) * sig, botCarBody.angle);
           camera.pos.y -= sig * 10.0;
         }
       }
@@ -187,6 +198,11 @@ class Game {
     context.save();
     context.translate(carBody.position.x, carBody.position.y);
     context.rotate(carBody.angle);
+    drawCar(context);
+    context.restore();
+    context.save();
+    context.translate(botCarBody.position.x, botCarBody.position.y);
+    context.rotate(botCarBody.angle);
     drawCar(context);
     context.restore();
 

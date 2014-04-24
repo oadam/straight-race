@@ -55,8 +55,11 @@ class Car {
   static const double airBrake = power / maxSpeed / maxSpeed / maxSpeed;
 ///The speed under which we switch from braking to reverse gear
   static const double rearSpeedThreshold = 4.0;//m.s-1
+  static double airBrakeAlpha0 = 10.0 * PI / 180;
+  static double airBrakeD0ByV0 = 10.0 / (100.0 / 3.6);//10 meters at 100 km/h
+
   static double angle = 30 * PI / 180;
-  
+    
   
   static final Vector2 fl = new Vector2(frontWheels, -lateralWheels);
   static final Vector2 fr = new Vector2(frontWheels, lateralWheels);
@@ -126,7 +129,7 @@ class Car {
     return shapes;
   }
   
-  void applyForces(Body body, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
+  void applyForces(Body body, List<Body> otherCars, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
     double rspeed, fspeed;
     double accelPlusBrake = 0.0;
@@ -172,6 +175,23 @@ class Car {
     
     //air brake
     Vector2 vg = body.getLinearVelocityFromLocalPoint(new Vector2.zero());
+    for (Body otherCar in otherCars) {
+      Vector2 deltaPos = otherCar.position - body.position;
+      Vector2 otherSpeed = otherCar.getLinearVelocityFromLocalPoint(new Vector2.zero());
+      double cosA;
+      if (deltaPos.length == 0.0 || otherSpeed.length == 0.0) {
+        cosA = -1.0;
+      } else {
+        cosA = deltaPos.dot(otherSpeed) / deltaPos.length / otherSpeed.length;
+      }
+      if (cosA < 0.0) {
+        continue;
+      }
+      double deltaPosCoef = exp(-deltaPos.length / otherSpeed.length / airBrakeD0ByV0);
+      double alpha = acos(cosA);
+      double alphaCoef = exp(-alpha / airBrakeAlpha0);
+      vg -= otherSpeed * deltaPosCoef * alphaCoef;
+    }
     Vector2 fairBrake = -vg * airBrake * vg.length;
     body.applyForce(fairBrake, body.getWorldPoint(new Vector2.zero()));
     
