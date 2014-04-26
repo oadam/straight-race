@@ -40,6 +40,7 @@ class Game {
   List<Body> wallBodies = [];
   static final Vector2 WALL_SIZE = new Vector2(1.0, 300.0);
   static const double PHYSICS_WORLD_WRAP = 100.0;
+  static const double LOOSING_DISTANCE = 50.0;
   
   final Camera camera;
   final CanvasRenderingContext2D canvasContext;
@@ -191,17 +192,34 @@ class Game {
       }
             
       world.step(_WORLD_STEP, 10, 10);
-      PosAndSpeed cameraTarget = _getCameraTarget();
-      camera.updatePos(cameraTarget.pos, cameraTarget.speed, _WORLD_STEP);
+      PosAndSpeed allCarsCenter = _getCameraTarget();
+      camera.updatePos(allCarsCenter.pos, allCarsCenter.speed, _WORLD_STEP);
       
+      //lose and win
+      List<Car> cars = this._getAllCars();
+      Car first = cars.reduce((a, b) => a.body.position.y > b.body.position.y ? a : b);
+      for (var i = 0; i < cars.length; i++) {
+        Car c = cars[i];
+        if ((first.body.position.y - c.body.position.y) < LOOSING_DISTANCE) {
+          continue;
+        }
+        c.score--;
+        double x = -first.body.position.x.sign * (TRACK_WIDTH / 2.0 - START_SPACE_BETWEEN_CARS);
+        c.body.setTransform(new Vector2(x, first.body.position.y + START_SPACE_BETWEEN_CARS), PI/2.0);
+        c.body.linearVelocity = first.body.linearVelocity;
+        c.body.angularVelocity = 0.0;
+        break;
+      }
+      
+      //WORLD_WRAP
       for (var sig in [-1.0, 1.0]) {
-        if (car.body.position.y * sig > PHYSICS_WORLD_WRAP) {
+        if (first.body.position.y * sig > PHYSICS_WORLD_WRAP) {
           _getAllCars().forEach((c) {
             c.body.setTransform(c.body.position - new Vector2(.0,  PHYSICS_WORLD_WRAP) * sig, c.body.angle);
           });
           camera.pos.y -= sig * PHYSICS_WORLD_WRAP;
         }
-      }
+      }      
     }
     
     //clear
