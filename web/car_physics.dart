@@ -1,7 +1,6 @@
 library car;
 
 import 'tire.dart';
-import 'tire2.dart';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
 import 'package:unittest/unittest.dart';
@@ -13,10 +12,10 @@ class ImpulseAndMomentum {
   const ImpulseAndMomentum(this.impulse, this.momentum);
 }
 
-class TirePosAndAngle {
+class PosAndAngle {
   final Vector2 pos;
   final num angle;
-  const TirePosAndAngle(this.pos, this.angle);
+  const PosAndAngle(this.pos, this.angle);
 }
 
 class SvgShape {
@@ -26,12 +25,13 @@ class SvgShape {
     const SvgShape(this.reversed, this.svg);
 }
 
-class Car {
+class CarPhysics {
   final Tire tire = new Tire();
 
   static const double imageRatio = 4.5 / 500;
-  //from grep " d=" carFixtures.svg
-  
+
+  ///result of
+  ///    grep " d=" carFixtures.svg
   static final List<SvgShape> svgShapes = [
     new SvgShape(false, "M 2.5714286,358.36218 15.285714,319.50504 57.000002,297.79076 109.00718,288.49068 109.71429,501.07647 57.571431,492.79075 16.428571,475.50504 1.4999998,422.43361 z"),
     new SvgShape(false, "m 409.27854,290.21215 44.41349,8.98564 24.6145,15.3496 20.27926,42.85069 1.41421,62.10696 -18.62886,49.40776 -25.07179,18.47092 -44.87078,10.69275 z"),
@@ -216,12 +216,12 @@ class Car {
     body.applyForce(body.getWorldVector2(response), body.getWorldPoint(position));
   }
   
-  List<TirePosAndAngle> get tiresAndPos {
+  List<PosAndAngle> get tiresAndPos {
     return [
-      new TirePosAndAngle(fl, fangle),
-      new TirePosAndAngle(fr, fangle),
-      new TirePosAndAngle(rl, 0.0),
-      new TirePosAndAngle(rr, 0.0)
+      new PosAndAngle(fl, fangle),
+      new PosAndAngle(fr, fangle),
+      new PosAndAngle(rl, 0.0),
+      new PosAndAngle(rr, 0.0)
     ];
   }
 }
@@ -229,14 +229,14 @@ class Car {
 void main() {
 
   test('getShapes', () {
-    List<PolygonShape> result = Car.getShapes();
-    expect(result.length, Car.svgShapes.length, reason: "Number of shapes");
+    List<PolygonShape> result = CarPhysics.getShapes();
+    expect(result.length, CarPhysics.svgShapes.length, reason: "Number of shapes");
     var g = new Vector2.zero();
     for (PolygonShape s in result) {
       Vector2 c = s.centroid;
       g+=c;
     }
     //expect(g.x/Car.length, closeTo(0.0, 0.02));
-    expect(g.y, closeTo(0.0, 0.08 * Car.width));
+    expect(g.y, closeTo(0.0, 0.08 * CarPhysics.width));
   });
 }
