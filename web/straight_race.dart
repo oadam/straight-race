@@ -154,8 +154,12 @@ class Game {
           accel: keyboard.isPressed(KeyCode.UP),
           brake: keyboard.isPressed(KeyCode.DOWN)
       );
-      car.applyForces(botCarBody, [carBody], turnLeft: botCarBody.position.x > 0.6 * WALL_OFFSET,
-          turnRight: botCarBody.position.x < - 0.6 * WALL_OFFSET,
+      bool botLeft, botRight;
+     Vector2 botSpeed = botCarBody.getLinearVelocityFromLocalPoint(new Vector2.zero());
+     botLeft = botSpeed.x > 0 && botCarBody.position.x > 0.6 * WALL_OFFSET;
+     botRight = botSpeed.x < 0 && botCarBody.position.x < -0.6 * WALL_OFFSET;
+     car.applyForces(botCarBody, [carBody], turnLeft: botLeft,
+          turnRight: botRight,
           accel: true,
           brake: false
       );
