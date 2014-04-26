@@ -1,5 +1,6 @@
 import 'dart:html';
 import 'car_physics.dart';
+import 'car.dart';
 import 'keyboard.dart';
 import 'package:vector_math/vector_math.dart';
 import 'dart:math';
@@ -31,9 +32,11 @@ class Game {
 
   final World world = new World(new Vector2(.0, .0), false, new DefaultWorldPool());
   final CarPhysics carPhysics = new CarPhysics();
-  Body carBody;
-  Body botCarBody;
-  List<Body> carBodies;
+  
+  Car car;
+  List<Car> botCars;
+  static const int BOT_COUNT = 3;
+ 
   List<Body> wallBodies = [];
   static final Vector2 WALL_SIZE = new Vector2(1.0, 300.0);
   static const double PHYSICS_WORLD_WRAP = 100.0;
@@ -58,6 +61,7 @@ class Game {
   static const num _POSITION_ITERATIONS = 1 / 60;
     
   static const double TRACK_WIDTH = 30.0;
+  static const double START_SPACE_BETWEEN_CARS = CarPhysics.width * 2;
 
   Game(CanvasElement canvas):
     keyboard = new Keyboard(),
@@ -70,12 +74,23 @@ class Game {
     //car
     BodyDef bd = new BodyDef();
     bd.type = BodyType.DYNAMIC;
-    bd.position = new Vector2(-1.0, .0);
     bd.angle = PI / 2;
-    carBody = world.createBody(bd);
-    bd.position = new Vector2(1.0, 0.0);
-    botCarBody = world.createBody(bd);
-    carBodies = [carBody, botCarBody];
+    car = new Car(world.createBody(bd));
+    botCars = [];
+    for (var i = 0; i < BOT_COUNT; i++) {
+      botCars.add(new Car(world.createBody(bd)));
+    }
+    List<Car> cars = this._getAllCars();
+    //place cars
+    //even lines are | * * * |
+    //odd  lines are |  * *  |
+    //int carsPerEvenLine = ((TRACK_WIDTH - START_SPACE_BETWEEN_CARS) / (2 * START_SPACE_BETWEEN_CARS)).floor();
+    //int evenOddCount = (cars.length / (carsPerEvenLine + carsPerEvenLine - 1)).round();
+    for (var i = 0; i < cars.length; i++) {
+      Car c = cars[i];
+      double x = (i.toDouble() - 0.5 * (cars.length - 1)) * START_SPACE_BETWEEN_CARS;
+      c.body.setTransform(new Vector2(x, 0.0), PI/2.0);
+    }
     
     List<PolygonShape> shapes = CarPhysics.getShapes();
     double totalSurface = shapes.fold(0.0, (s, fd) {
@@ -89,7 +104,7 @@ class Game {
       fd.density = CarPhysics.weight / totalSurface;
       fd.restitution = 0.5;
       fd.friction = 0.1;
-      carBodies.forEach((b) => b.createFixture(fd));
+      cars.forEach((c) => c.body.createFixture(fd));
     }
     
     //wall
@@ -127,13 +142,20 @@ class Game {
     window.requestAnimationFrame(this.update);
   }
   
+  List<Car> _getAllCars() {
+    List<Car> result = [car];
+    result.addAll(botCars);
+    return result;
+  }
+  
   static const double _WORLD_STEP_MS = _WORLD_STEP * 1000;
     
   PosAndSpeed _getCameraTarget() {
     PosAndSpeed result = new PosAndSpeed(new Vector2.zero(), new Vector2.zero());
-    carBodies.forEach((b) {
-      result.pos += b.position / carBodies.length.toDouble();
-      result.speed += b.getLinearVelocityFromLocalPoint(new Vector2.zero()) / carBodies.length.toDouble();
+    List<Car> cars = this._getAllCars();
+    cars.forEach((c) {
+      result.pos += c.body.position / cars.length.toDouble();
+      result.speed += c.body.getLinearVelocityFromLocalPoint(new Vector2.zero()) / cars.length.toDouble();
     });
     return result;
   }
@@ -147,29 +169,35 @@ class Game {
     int nbStep = ((time - lastUpdateTime) / _WORLD_STEP_MS).floor();
     lastUpdateTime += _WORLD_STEP_MS * nbStep;
     for (var i = 0; i < nbStep; i++) {
-      carPhysics.applyForces(carBody, [botCarBody], turnLeft: keyboard.isPressed(KeyCode.LEFT),
+      carPhysics.applyForces(car.body, botCars.map((c)=>c.body), turnLeft: keyboard.isPressed(KeyCode.LEFT),
           turnRight: keyboard.isPressed(KeyCode.RIGHT),
           accel: keyboard.isPressed(KeyCode.UP),
           brake: keyboard.isPressed(KeyCode.DOWN)
       );
-      bool botLeft, botRight;
-     Vector2 botSpeed = botCarBody.getLinearVelocityFromLocalPoint(new Vector2.zero());
-     botLeft = botSpeed.x > 0 && botCarBody.position.x > 0.3 * TRACK_WIDTH;
-     botRight = botSpeed.x < 0 && botCarBody.position.x < -0.3 * TRACK_WIDTH;
-     carPhysics.applyForces(botCarBody, [carBody], turnLeft: botLeft,
-          turnRight: botRight,
-          accel: true,
-          brake: false
-      );
+      for (var j = 0; j < botCars.length; j++) {
+        Car current = botCars[j];
+        List<Car> allButCurrent = [car];
+        allButCurrent.addAll(botCars.sublist(0, j));
+        allButCurrent.addAll(botCars.sublist(j+1));
+        bool botLeft, botRight;
+        Vector2 botSpeed = current.body.getLinearVelocityFromLocalPoint(new Vector2.zero());
+        botLeft = botSpeed.x > 0 && current.body.position.x > 0.3 * TRACK_WIDTH;
+        botRight = botSpeed.x < 0 && current.body.position.x < -0.3 * TRACK_WIDTH;
+        carPhysics.applyForces(current.body, allButCurrent.map((c)=>c.body), turnLeft: botLeft,
+            turnRight: botRight,
+            accel: true,
+            brake: false
+        );
+      }
             
       world.step(_WORLD_STEP, 10, 10);
       PosAndSpeed cameraTarget = _getCameraTarget();
       camera.updatePos(cameraTarget.pos, cameraTarget.speed, _WORLD_STEP);
       
       for (var sig in [-1.0, 1.0]) {
-        if (carBody.position.y * sig > PHYSICS_WORLD_WRAP) {
-          carBodies.forEach((b) {
-            b.setTransform(b.position - new Vector2(.0,  PHYSICS_WORLD_WRAP) * sig, b.angle);
+        if (car.body.position.y * sig > PHYSICS_WORLD_WRAP) {
+          _getAllCars().forEach((c) {
+            c.body.setTransform(c.body.position - new Vector2(.0,  PHYSICS_WORLD_WRAP) * sig, c.body.angle);
           });
           camera.pos.y -= sig * PHYSICS_WORLD_WRAP;
         }
@@ -215,10 +243,10 @@ class Game {
     }
 
     //draw car
-    carBodies.forEach((b) {
+    _getAllCars().forEach((c) {
       canvasContext.save();
-      canvasContext.translate(b.position.x, b.position.y);
-      canvasContext.rotate(b.angle);
+      canvasContext.translate(c.body.position.x, c.body.position.y);
+      canvasContext.rotate(c.body.angle);
       drawCar(canvasContext);
       canvasContext.restore();
     });
@@ -226,7 +254,7 @@ class Game {
 
     canvasContext.restore();
 
-    document.getElementById("log").text = "speed ${(carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
+    document.getElementById("log").text = "speed ${(car.body.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
     window.requestAnimationFrame(update);
   }
 

@@ -1,4 +1,4 @@
-library car;
+library car_physics;
 
 import 'tire.dart';
 import 'dart:math';
@@ -129,7 +129,7 @@ class CarPhysics {
     return shapes;
   }
   
-  void applyForces(Body body, List<Body> otherCars, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
+  void applyForces(Body body, Iterable<Body> otherCars, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
     fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
     double rspeed, fspeed;
     double accelPlusBrake = 0.0;
