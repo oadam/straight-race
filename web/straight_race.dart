@@ -10,7 +10,7 @@ import 'package:box2d/box2d_browser.dart';
 class Camera {
   Vector2 pos = new Vector2.zero();
   Vector2 speed = new Vector2.zero();
-  double zoom = 12.0;
+  double zoom = 8.0;
   static num tracking = 4.0e-1 * 4;//m.s-2 / m     1g at 10m
   static num dumping = 2 * sqrt(tracking);//m.s-2 / m.s-1   1 g at 10m.s-1
 
@@ -20,6 +20,12 @@ class Camera {
   }
 }
 
+class PosAndSpeed {
+  Vector2 pos;
+  Vector2 speed;
+  PosAndSpeed(this.pos, this.speed);
+}
+
 class Game {
   final Keyboard keyboard;
 
@@ -27,6 +33,7 @@ class Game {
   final Car car = new Car();
   Body carBody;
   Body botCarBody;
+  List<Body> carBodies;
   List<Body> wallBodies = [];
   final Vector2 wallSize = new Vector2(1.0, 300.0);
   
@@ -65,12 +72,13 @@ class Game {
     //car
     BodyDef bd = new BodyDef();
     bd.type = BodyType.DYNAMIC;
-    bd.position = new Vector2(.0, -2.0);
+    bd.position = new Vector2(-1.0, .0);
     bd.angle = PI / 2;
     carBody = world.createBody(bd);
-    bd.position = new Vector2(.0, 2.0);
+    bd.position = new Vector2(1.0, 0.0);
     botCarBody = world.createBody(bd);
-
+    carBodies = [carBody, botCarBody];
+    
     List<PolygonShape> shapes = Car.getShapes();
     double totalSurface = shapes.fold(0.0, (s, fd) {
       MassData md = new MassData();
@@ -83,8 +91,7 @@ class Game {
       fd.density = Car.weight / totalSurface;
       fd.restitution = 0.5;
       fd.friction = 0.1;
-      carBody.createFixture(fd);
-      botCarBody.createFixture(fd);
+      carBodies.forEach((b) => b.createFixture(fd));
     }
     
     //wall
@@ -98,7 +105,7 @@ class Game {
       wallBodies.add(wallBody);
     }
     
-    camera.pos = carBody.position;
+    camera.pos = _getCameraTarget().pos;
     
     Vector2 extents = new Vector2(canvas.width / 2, canvas.height / 2);
     CanvasViewportTransform viewport = new CanvasViewportTransform(extents, extents);
@@ -124,6 +131,15 @@ class Game {
   
   static const double _WORLD_STEP_MS = _WORLD_STEP * 1000;
     
+  PosAndSpeed _getCameraTarget() {
+    PosAndSpeed result = new PosAndSpeed(new Vector2.zero(), new Vector2.zero());
+    carBodies.forEach((b) {
+      result.pos += b.position / carBodies.length.toDouble();
+      result.speed += b.getLinearVelocityFromLocalPoint(new Vector2.zero()) / carBodies.length.toDouble();
+    });
+    return result;
+  }
+  
   update(num time) {
     if (paused) {return;}
     if (lastUpdateTime == null || firstIterationAfterPause) {
@@ -145,12 +161,14 @@ class Game {
       );
             
       world.step(_WORLD_STEP, 10, 10);
-      camera.updatePos(carBody.position, carBody.getLinearVelocityFromLocalPoint(new Vector2.zero()), _WORLD_STEP);
+      PosAndSpeed cameraTarget = _getCameraTarget();
+      camera.updatePos(cameraTarget.pos, cameraTarget.speed, _WORLD_STEP);
       
       for (var sig in [-1.0, 1.0]) {
         if (carBody.position.y * sig > 10.0) {
-          carBody.setTransform(carBody.position - new Vector2(.0,  10.0) * sig, carBody.angle);
-          botCarBody.setTransform(botCarBody.position - new Vector2(.0,  10.0) * sig, botCarBody.angle);
+          carBodies.forEach((b) {
+            b.setTransform(b.position - new Vector2(.0,  10.0) * sig, b.angle);
+          });
           camera.pos.y -= sig * 10.0;
         }
       }
@@ -195,16 +213,13 @@ class Game {
     }
 
     //draw car
-    context.save();
-    context.translate(carBody.position.x, carBody.position.y);
-    context.rotate(carBody.angle);
-    drawCar(context);
-    context.restore();
-    context.save();
-    context.translate(botCarBody.position.x, botCarBody.position.y);
-    context.rotate(botCarBody.angle);
-    drawCar(context);
-    context.restore();
+    carBodies.forEach((b) {
+      context.save();
+      context.translate(b.position.x, b.position.y);
+      context.rotate(b.angle);
+      drawCar(context);
+      context.restore();
+    });
 
 
     context.restore();
