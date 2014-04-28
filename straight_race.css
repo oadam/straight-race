@@ -1,0 +1,16 @@
+body {
+  text-align: center;
+  overflow:hidden;
+}
+div, p {
+  text-align: left;
+}
+h1 {
+  font-family: 'Dancing Script', 'cursive';
+  font-size: 50px;
+  font-weight: normal;
+  margin: 5px;
+}
+#log {
+  overflow: auto;
+}
