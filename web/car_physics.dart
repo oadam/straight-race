@@ -18,6 +18,14 @@ class PosAndAngle {
   const PosAndAngle(this.pos, this.angle);
 }
 
+class CarControls {
+  final bool turnLeft;
+  final bool turnRight;
+  final bool accelerate;
+  final bool brake;
+  const CarControls(this.turnLeft, this.turnRight, this.accelerate, this.brake);
+}
+
 class SvgShape {
     final String svg;
     ///Needed because Box2D wants vertices to be ordered anti-clockwise
@@ -129,14 +137,14 @@ class CarPhysics {
     return shapes;
   }
   
-  void applyForces(Body body, Iterable<Body> otherCars, {bool turnLeft, bool turnRight, bool accel, bool brake}) {
-    fangle = turnLeft == turnRight ? 0.0 : (turnLeft ? angle : -angle);
+  void applyForces(Body body, Iterable<Body> otherCars, CarControls controls) {
+    fangle = controls.turnLeft == controls.turnRight ? 0.0 : (controls.turnLeft ? angle : -angle);
     double rspeed, fspeed;
     double accelPlusBrake = 0.0;
-    if (accel) {
+    if (controls.accelerate) {
       accelPlusBrake+= 1.0;
     }
-    if (brake) {
+    if (controls.brake) {
       accelPlusBrake-= 1.0;
     }
     

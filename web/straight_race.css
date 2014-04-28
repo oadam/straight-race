@@ -1,5 +1,6 @@
 body {
   text-align: center;
+  overflow:hidden;
 }
 div, p {
   text-align: left;

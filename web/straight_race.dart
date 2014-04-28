@@ -33,9 +33,8 @@ class Game {
   final World world = new World(new Vector2(.0, .0), false, new DefaultWorldPool());
   final CarPhysics carPhysics = new CarPhysics();
   
-  Car car;
-  List<Car> botCars;
-  static const int BOT_COUNT = 3;
+  List<Car> cars = [];
+  static const int BOT_COUNT = 6;
  
   List<Body> wallBodies = [];
   static final Vector2 WALL_SIZE = new Vector2(1.0, 300.0);
@@ -76,12 +75,18 @@ class Game {
     BodyDef bd = new BodyDef();
     bd.type = BodyType.DYNAMIC;
     bd.angle = PI / 2;
-    car = new Car(world.createBody(bd));
-    botCars = [];
+    CarController h1 = new KeyboardController(
+        keyboard,
+        KeyCode.UP,
+        KeyCode.LEFT,
+        KeyCode.DOWN,
+        KeyCode.RIGHT
+    );
+    cars.add(new Car(world.createBody(bd), h1));
+    //car2 = new Car(world.createBody(bd));
     for (var i = 0; i < BOT_COUNT; i++) {
-      botCars.add(new Car(world.createBody(bd)));
+      cars.add(new Car(world.createBody(bd), new BotController()));
     }
-    List<Car> cars = this._getAllCars();
     //place cars
     //even lines are | * * * |
     //odd  lines are |  * *  |
@@ -91,6 +96,7 @@ class Game {
       Car c = cars[i];
       double x = (i.toDouble() - 0.5 * (cars.length - 1)) * START_SPACE_BETWEEN_CARS;
       c.body.setTransform(new Vector2(x, 0.0), PI/2.0);
+      c.color = (360 * i / cars.length).round();
     }
     
     List<PolygonShape> shapes = CarPhysics.getShapes();
@@ -143,17 +149,10 @@ class Game {
     window.requestAnimationFrame(this.update);
   }
   
-  List<Car> _getAllCars() {
-    List<Car> result = [car];
-    result.addAll(botCars);
-    return result;
-  }
-  
   static const double _WORLD_STEP_MS = _WORLD_STEP * 1000;
     
   PosAndSpeed _getCameraTarget() {
     PosAndSpeed result = new PosAndSpeed(new Vector2.zero(), new Vector2.zero());
-    List<Car> cars = this._getAllCars();
     cars.forEach((c) {
       result.pos += c.body.position / cars.length.toDouble();
       result.speed += c.body.getLinearVelocityFromLocalPoint(new Vector2.zero()) / cars.length.toDouble();
@@ -170,51 +169,20 @@ class Game {
     int nbStep = ((time - lastUpdateTime) / _WORLD_STEP_MS).floor();
     lastUpdateTime += _WORLD_STEP_MS * nbStep;
     for (var i = 0; i < nbStep; i++) {
-      carPhysics.applyForces(car.body, botCars.map((c)=>c.body), turnLeft: keyboard.isPressed(KeyCode.LEFT),
-          turnRight: keyboard.isPressed(KeyCode.RIGHT),
-          accel: keyboard.isPressed(KeyCode.UP),
-          brake: keyboard.isPressed(KeyCode.DOWN)
-      );
-      for (var j = 0; j < botCars.length; j++) {
-        Car current = botCars[j];
-        List<Car> allButCurrent = [car];
-        allButCurrent.addAll(botCars.sublist(0, j));
-        allButCurrent.addAll(botCars.sublist(j+1));
-        bool botLeft, botRight;
-        Vector2 botSpeed = current.body.getLinearVelocityFromLocalPoint(new Vector2.zero());
-        botLeft = botSpeed.x > 0 && current.body.position.x > 0.3 * TRACK_WIDTH;
-        botRight = botSpeed.x < 0 && current.body.position.x < -0.3 * TRACK_WIDTH;
-        carPhysics.applyForces(current.body, allButCurrent.map((c)=>c.body), turnLeft: botLeft,
-            turnRight: botRight,
-            accel: true,
-            brake: false
-        );
-      }
+      Car.applyForcesForAll(cars);
             
       world.step(_WORLD_STEP, 10, 10);
       PosAndSpeed allCarsCenter = _getCameraTarget();
       camera.updatePos(allCarsCenter.pos, allCarsCenter.speed, _WORLD_STEP);
       
       //lose and win
-      List<Car> cars = this._getAllCars();
-      Car first = cars.reduce((a, b) => a.body.position.y > b.body.position.y ? a : b);
-      for (var i = 0; i < cars.length; i++) {
-        Car c = cars[i];
-        if ((first.body.position.y - c.body.position.y) < LOOSING_DISTANCE) {
-          continue;
-        }
-        c.score--;
-        double x = -first.body.position.x.sign * (TRACK_WIDTH / 2.0 - START_SPACE_BETWEEN_CARS);
-        c.body.setTransform(new Vector2(x, first.body.position.y + START_SPACE_BETWEEN_CARS), PI/2.0);
-        c.body.linearVelocity = first.body.linearVelocity;
-        c.body.angularVelocity = 0.0;
-        break;
-      }
+      Car.applyLooseWin(cars);
       
       //WORLD_WRAP
+      Car first = Car.getFirst(cars);
       for (var sig in [-1.0, 1.0]) {
         if (first.body.position.y * sig > PHYSICS_WORLD_WRAP) {
-          _getAllCars().forEach((c) {
+          cars.forEach((c) {
             c.body.setTransform(c.body.position - new Vector2(.0,  PHYSICS_WORLD_WRAP) * sig, c.body.angle);
           });
           camera.pos.y -= sig * PHYSICS_WORLD_WRAP;
@@ -224,7 +192,7 @@ class Game {
     
     //clear
     canvasContext
-      ..setFillColorRgb(255, 0, 0)
+      ..setFillColorRgb(40, 40, 40)
       ..fillRect(0, 0, canvasWidth, canvasHeight);
 
     /*world.drawDebugData();
@@ -261,33 +229,36 @@ class Game {
     }
 
     //draw car
-    _getAllCars().forEach((c) {
+    cars.forEach((c) {
       canvasContext.save();
       canvasContext.translate(c.body.position.x, c.body.position.y);
       canvasContext.rotate(c.body.angle);
-      drawCar(canvasContext);
+      drawCar(canvasContext, c);
       canvasContext.restore();
     });
 
 
     canvasContext.restore();
 
-    document.getElementById("log").text = "speed ${(car.body.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0)}km/h";
+    document.getElementById("log").text = """
+       speed ${cars.map((car) =>(car.body.getLinearVelocityFromLocalPoint(new Vector2.zero()).length * 3.6).toStringAsFixed(0))}km/h
+       scores ${cars.map((c)=>c.score)}
+    """;
     window.requestAnimationFrame(update);
   }
 
-  void drawCar(CanvasRenderingContext2D context) {
+  void drawCar(CanvasRenderingContext2D context, Car car) {
     context
-      ..save()
-      ..lineWidth = 0.01
-      ..setFillColorRgb(0, 255, 0)
       ..save()
       ..scale(CarPhysics.length, CarPhysics.width)
       ..drawImageScaled(carImage, -0.5, -0.5, 1.0, 1.0)
       ..restore()
       ;
+    context
+        ..setFillColorHsl(car.color, 100, 50)
+        ..fillRect(-CarPhysics.length / 8, -CarPhysics.width / 8, CarPhysics.length / 4, CarPhysics.width / 4);
     //tires
-    context.setFillColorRgb(0, 255, 0);
+    /*context.setFillColorRgb(0, 255, 0);
     carPhysics.tiresAndPos.forEach((tireAndPos) {
       context
         ..save()
@@ -295,9 +266,7 @@ class Game {
         ..rotate(tireAndPos.angle)
         ..fillRect(-CarPhysics.length / 30, -CarPhysics.width / 50, CarPhysics.length / 15, CarPhysics.width / 25)
         ..restore();
-    });
-    context
-      ..restore();
+    });*/
   }
 }
 
