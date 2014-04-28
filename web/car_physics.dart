@@ -61,6 +61,8 @@ class CarPhysics {
   static const double maxSpeed = 50.0;//m.s-1
   //the power of airBrake is v * (airBrake * v^2)
   static const double airBrake = power / maxSpeed / maxSpeed / maxSpeed;
+  ///Ratio between speed of a car and wind just behind it
+  static const double MAX_WIND_SHIELD = 0.5;
 ///The speed under which we switch from braking to reverse gear
   static const double rearSpeedThreshold = 4.0;//m.s-1
   static double airBrakeAlpha0 = 10.0 * PI / 180;
@@ -183,9 +185,9 @@ class CarPhysics {
     
     //air brake
     Vector2 vg = body.getLinearVelocityFromLocalPoint(new Vector2.zero());
-    for (Body otherCar in otherCars) {
-      Vector2 deltaPos = otherCar.position - body.position;
-      Vector2 otherSpeed = otherCar.getLinearVelocityFromLocalPoint(new Vector2.zero());
+    Iterable<Vector2> otherWinds = otherCars.map((c) {
+      Vector2 deltaPos = c.position - body.position;
+      Vector2 otherSpeed = c.getLinearVelocityFromLocalPoint(new Vector2.zero());
       double cosA;
       if (deltaPos.length == 0.0 || otherSpeed.length == 0.0) {
         cosA = -1.0;
@@ -193,14 +195,21 @@ class CarPhysics {
         cosA = deltaPos.dot(otherSpeed) / deltaPos.length / otherSpeed.length;
       }
       if (cosA < 0.0) {
-        continue;
+        return new Vector2.zero();
       }
-      double deltaPosCoef = exp(-deltaPos.length / otherSpeed.length / airBrakeD0ByV0);
+      double deltaPosCoef = MAX_WIND_SHIELD * exp(-deltaPos.length / otherSpeed.length / airBrakeD0ByV0);
       double alpha = acos(cosA);
       double alphaCoef = exp(-alpha / airBrakeAlpha0);
-      vg -= otherSpeed * deltaPosCoef * alphaCoef;
-    }
-    Vector2 fairBrake = -vg * airBrake * vg.length;
+      return otherSpeed * deltaPosCoef * alphaCoef;
+    });
+    
+    //ponderated mean
+    double lengthSum = otherWinds.fold(0.0, (s, c) => s + c.length);
+    Vector2 meanWind = lengthSum == 0.0 ? new Vector2.zero() : otherWinds.map((w) => w * w.length / lengthSum)
+        .reduce((a, b) => a + b);
+    Vector2 airSpeed = meanWind - vg;
+    
+    Vector2 fairBrake = airSpeed * airBrake * airSpeed.length;
     body.applyForce(fairBrake, body.getWorldPoint(new Vector2.zero()));
     
     applyForceForTire(body, fl, fspeed, fangle, noTorqueF);
