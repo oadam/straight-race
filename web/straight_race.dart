@@ -152,12 +152,16 @@ class Game {
   static const double _WORLD_STEP_MS = _WORLD_STEP * 1000;
     
   PosAndSpeed _getCameraTarget() {
-    PosAndSpeed result = new PosAndSpeed(new Vector2.zero(), new Vector2.zero());
+    Car first = Car.getFirst(cars);
+    double quarter_screen = canvasHeight / camera.zoom * 0.25;
+    PosAndSpeed result = new PosAndSpeed(new Vector2(0.0, first.body.position.y - quarter_screen), first.body.getLinearVelocityFromLocalPoint(new Vector2.zero()));
+    return result;
+    /*PosAndSpeed result = new PosAndSpeed(new Vector2.zero(), new Vector2.zero());
     cars.forEach((c) {
       result.pos += c.body.position / cars.length.toDouble();
       result.speed += c.body.getLinearVelocityFromLocalPoint(new Vector2.zero()) / cars.length.toDouble();
     });
-    return result;
+    return result;*/
   }
   
   update(num time) {
